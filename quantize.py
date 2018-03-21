@@ -2,7 +2,9 @@
 import sys
 import PIL
 from PIL import Image
-import numpy
+import numpy as np
+import scipy as sp
+import scipy.ndimage
 
 
 def quantize(silf, palette, dither=False):
@@ -26,26 +28,120 @@ def quantize(silf, palette, dither=False):
         return silf._makeself(im)
 
 
+def fill_holes(finalimage):
+    """ fill small holes of the image to make it smooth. it returns a filled a img"""
+
+    im = finalimage.convert("RGB")
+    width, height = im.size
+
+    matrix1 = []
+    matrix2 = []
+    matrix3 = []
+
+    for j in range(height):
+        matrix1.append([])
+        matrix2.append([])
+        matrix3.append([])
+        for i in range(width):
+            matrix1[j].append(0)
+            matrix2[j].append(0)
+            matrix3[j].append(0)
+
+    # fill in matrix with 0 and 1
+    for y in range(height):
+        for x in range(width):
+            r, g, b = im.getpixel((x, y))
+            # r,g,b = 0, 0, 0
+            if r == ourcolors[0][0] and g == ourcolors[0][1] and b == ourcolors[0][2]:
+                matrix1[y][x] = 1
+            else:
+                matrix1[y][x] = 0
+
+    for y in range(height):
+        for x in range(width):
+            r, g, b = im.getpixel((x, y))
+            # r,g,b = 0, 0, 0
+            if r == ourcolors[1][0] and g == ourcolors[1][1] and b == ourcolors[1][2]:
+                matrix2[y][x] = 1
+            else:
+                matrix2[y][x] = 0
+
+    for y in range(height):
+        for x in range(width):
+            r, g, b = im.getpixel((x, y))
+            # r,g,b = 0, 0, 0
+            if r == ourcolors[2][0] and g == ourcolors[2][1] and b == ourcolors[2][2]:
+                matrix3[y][x] = 1
+            else:
+                matrix3[y][x] = 0
+
+    data1 = scipy.ndimage.morphology.binary_fill_holes(matrix1)
+    data2 = scipy.ndimage.morphology.binary_fill_holes(matrix2)
+    data3 = scipy.ndimage.morphology.binary_fill_holes(matrix3)
+
+    im = Image.new("RGB", (width, height))
+
+    for y in range(height):
+        for x in range(width):
+            if data1[y][x] == 1:
+                im.putpixel(
+                    (x, y), (ourcolors[0][0], ourcolors[0][1], ourcolors[0][2]))
+                continue
+            if data2[y][x] == 1:
+                im.putpixel(
+                    (x, y), (ourcolors[1][0], ourcolors[1][1], ourcolors[1][2]))
+                continue
+            if data3[y][x] == 1:
+                im.putpixel(
+                    (x, y), (ourcolors[2][0], ourcolors[2][1], ourcolors[2][2]))
+                continue
+            im.putpixel((x, y), (255, 255, 255))
+
+    return im
+
+
 # main
-# expected to use command: python3 quantize image.jpg color1 color2 color3
-# white is used as the default 4th color
-# last argument is the optional image resolution factor
+# expected to use command: python quantize.py
+# please change quantize.config for certain behavior
 # this function will output out_quantize.bmp
-img = Image.open(sys.argv[1])
+
+# get configuration from quantize.config
+try:
+    s = open("quantize.config","r")
+except:
+    sys.exit("File 'quantize.config' is missing")
+
+settings = s.readlines()
+i = 0
+for line in settings:
+    settings[i] = line[line.index(":") + 2:-1]
+    i+=1
+
+image_name = settings[0]
+color1 = settings[1]
+color2 = settings[2]
+color3 = settings[3]
+resolution_factor = float(settings[4])
+fillholes = settings[5]
+
+#--------------------starts the program-----------------------
+
+img = Image.open(image_name)
+
 
 # all the colors we have right now
 allcolors = {
     'red': (255, 0, 0),
-    'orange': (255, 128, 0),
+    'orange': (255, 127, 0),
     'yellow': (255, 255, 0),
     'green': (0, 255, 0),
     'blue': (0, 0, 255),
-    'purple': (128, 0, 128),
+    'purple': (127, 0, 127),
     'black': (0, 0, 0),
     'white': (255, 255, 255),
 }
-ourcolors = [allcolors[sys.argv[2]], allcolors[sys.argv[3]],
-             allcolors[sys.argv[4]], (255, 255, 255)]
+ourcolors = [allcolors[color1], allcolors[color2],
+             allcolors[color3], (255, 255, 255)]
 palettedata = []
 
 for i in range(0, 4):
@@ -57,12 +153,19 @@ palimage.putpalette(palettedata * 64)
 
 finalimage = quantize(img, palimage, dither=False)
 
-#resize
-if sys.argv[5]:
-    resize = float(sys.argv[5])
-    nx, ny = finalimage.size
-    finalimage = finalimage.resize((int(nx * resize), int(ny * resize)), Image.BICUBIC)
+# resize the image to specific resolution
+resize = float(resolution_factor)
+nx, ny = finalimage.size
+finalimage = finalimage.resize(
+    (int(nx * resize), int(ny * resize)), Image.BICUBIC)
 
-finalimage.show()
+# call fill holes
+if fillholes == "true":
+    im = fill_holes(finalimage)
+else:
+    im = finalimage
 
-finalimage.save('out_quantize.bmp')
+im.show()
+im.save('out_quantize.bmp')
+
+
