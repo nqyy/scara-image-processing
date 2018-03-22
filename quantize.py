@@ -114,7 +114,7 @@ except:
 settings = s.readlines()
 i = 0
 for line in settings:
-    settings[i] = line[line.index(":") + 2:-1]
+    settings[i] = line[line.index(":") + 2: -1]
     i+=1
 
 image_name = settings[0]
@@ -167,5 +167,4 @@ else:
 
 im.show()
 im.save('out_quantize.bmp')
-
 
