@@ -118,19 +118,22 @@ for line in settings:
     i+=1
 
 image_name = settings[0]
-color1 = settings[1]
-color2 = settings[2]
-color3 = settings[3]
-resolution_factor = float(settings[4])
-fillholes = settings[5]
+num_colors = int(settings[1])
+colors = settings[2]
+resolution_factor = float(settings[3])
+fillholes = settings[4]
+colorslist = []
+colorslist = colors.split(" ")
+if num_colors != len(colorslist):
+    print("Error with config of colors!")
+    exit()
 
 #--------------------starts the program-----------------------
 
 img = Image.open(image_name)
 
-
 # all the colors we have right now
-allcolors = {
+colorpool = {
     'red': (255, 0, 0),
     'orange': (255, 127, 0),
     'yellow': (255, 255, 0),
@@ -139,17 +142,23 @@ allcolors = {
     'purple': (127, 0, 127),
     'black': (0, 0, 0),
     'white': (255, 255, 255),
+    'indigo': (75, 0, 130),
+    # more colors can be added to our pool
 }
-ourcolors = [allcolors[color1], allcolors[color2],
-             allcolors[color3], (255, 255, 255)]
+
+ourcolors = [(255,255,255)]
+for i in range(len(colorslist)):
+    ourcolors.append(colorpool[colorslist[i]])
+
+# print(ourcolors)
 palettedata = []
 
-for i in range(0, 4):
+for i in range(len(ourcolors)):
     for j in range(0, 3):
         palettedata.append(ourcolors[i][j])
 
 palimage = Image.new('P', (16, 16))
-palimage.putpalette(palettedata * 64)
+palimage.putpalette(palettedata * int(256 / (num_colors+1)))
 
 finalimage = quantize(img, palimage, dither=False)
 
