@@ -105,7 +105,7 @@ def fill_holes(finalimage):
 # please change quantize.config for certain behavior
 # this function will output out_quantize.bmp
 
-# get configuration from quantize.config
+# get configuration from config file
 try:
     s = open("quantize.config","r")
 except:
@@ -118,15 +118,11 @@ for line in settings:
     i+=1
 
 image_name = settings[0]
-num_colors = int(settings[1])
-colors = settings[2]
-resolution_factor = float(settings[3])
-fillholes = settings[4]
+colors = settings[1]
+resolution_factor = float(settings[2])
+fillholes = settings[3]
 colorslist = []
 colorslist = colors.split(" ")
-if num_colors != len(colorslist):
-    print("Error with config of colors!")
-    exit()
 
 #--------------------starts the program-----------------------
 
@@ -158,7 +154,7 @@ for i in range(len(ourcolors)):
         palettedata.append(ourcolors[i][j])
 
 palimage = Image.new('P', (16, 16))
-palimage.putpalette(palettedata * int(256 / (num_colors+1)))
+palimage.putpalette(palettedata * int(256 / len(ourcolors)))
 
 finalimage = quantize(img, palimage, dither=False)
 

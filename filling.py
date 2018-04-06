@@ -4,7 +4,18 @@ import matplotlib.pyplot as plt
 import numpy
 import sys
 import os
+import math
 
+
+def inv_kinematics(x, y, L1, L2):
+
+    sqrt = math.sqrt(x**2+y**2)
+    SplusQ = math.atan2(y,x)
+
+    S = SplusQ - math.acos((sqrt**2 + L1**2 - L2**2)/(2*sqrt*L1))
+    E = math.acos((sqrt**2 - L1**2 - L2**2)/(2*L1*L2))
+
+    return [round(math.degrees(S),4),round(math.degrees(E),4)]
 
 
 def vectorize(list):
@@ -18,6 +29,8 @@ def vectorize(list):
             stepslist.append([])
         stepslist[cursteplist_index].append(back)
     return stepslist
+
+
 
 # 1. put image to graph of networkx
 # 2. adjacent node with connected edge is up down left right upleft, upright, downleft, downright
@@ -61,27 +74,28 @@ for y in range(height):
         cur_node = width * y + x
         # up down left right
         if matrix[y][x] == 1 :
-            if x % width != width - 1 and matrix[y][x+1] == 1: # 右
+            if x % width != width - 1 and matrix[y][x+1] == 1: # Right
                 Edges.append((cur_node, cur_node + 1))
-            if x % width != 0 and matrix[y][x-1] == 1: # 左
+            if x % width != 0 and matrix[y][x-1] == 1: # Left
                 Edges.append((cur_node, cur_node - 1))
-            if y < height - 1 and matrix[y+1][x] == 1: # 下
+            if y < height - 1 and matrix[y+1][x] == 1: # Down
                 Edges.append((cur_node, cur_node + width))
-            if y > 0 and matrix[y-1][x] == 1: # 上
+            if y > 0 and matrix[y-1][x] == 1: # Up
                 Edges.append((cur_node, cur_node - width))
             # diagonal
-            if x % width != width - 1 and y < height - 1 and matrix[y+1][x+1] == 1: # 右下
+            if x % width != width - 1 and y < height - 1 and matrix[y+1][x+1] == 1: # Down Right
                 Edges.append((cur_node, cur_node + width + 1))
-            if x % width != width - 1 and y > 0 and matrix[y-1][x+1] == 1: # 右上
+            if x % width != width - 1 and y > 0 and matrix[y-1][x+1] == 1: # Up Right
                 Edges.append((cur_node, cur_node - width + 1))
-            if x % width != 0 and y < height - 1 and matrix[y+1][x-1] == 1: # 左下
+            if x % width != 0 and y < height - 1 and matrix[y+1][x-1] == 1: # Down Left
                 Edges.append((cur_node, cur_node + width - 1))
-            if x % width != 0 and y > 0 and matrix[y-1][x-1] == 1: # 左上
+            if x % width != 0 and y > 0 and matrix[y-1][x-1] == 1: # Up Left
                 Edges.append((cur_node, cur_node - width - 1))
 
 G.add_edges_from(Edges)
 subgraphs = list(nx.connected_component_subgraphs(G)) # a list of connected graphs
 
+# print(subgraphs)
 # calculate minimum spanning edges of the graph
 # mst = nx.minimum_spanning_edges(G, algorithm='kruskal', data=False) # can use prim as well
 
@@ -93,9 +107,28 @@ for graph in subgraphs:
     edgelist = list(dsf)
     if len(edgelist) > 0:
         node_vector += vectorize(edgelist)
-    
-# print(node_vector)
 # filling node list is stored in node_vector
+# print(node_vector)
+
+
+#------------------------------------------------------------------------
+# convert to angle
+L1 = 100
+L2 = 100
+angle_vector = []
+for a in node_vector:
+    angle_list = []
+    for element in a:
+        x = element % width
+        y = element / width
+        pair = inv_kinematics(x, y, L1, L2)
+        angle_list.append(pair)
+    angle_vector.append(angle_list)
+
+# First is shoulder, second is elbow
+print(angle_vector)
+
+
 
 #------------------------------------------------------------------------
 # output all pictures
