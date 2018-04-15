@@ -12,8 +12,8 @@ def inv_kinematics(x, y):
     L2 = 183.263961369
     pixel_factor = 1
 
-    x = pixel_factor * (x + 1 + 139.7) # offset of paper
-    y = pixel_factor * (width - y + 1 - 91.52171498) # offset of paper
+    x = pixel_factor * (x + 1) + 139.7 # offset of paper
+    y = pixel_factor * (width - y + 1) - 91.52171498 # offset of paper
 
     sqrt = math.sqrt(x**2+y**2)
     SplusQ = math.atan2(y,x)
@@ -37,106 +37,127 @@ def vectorize(list):
     return stepslist
 
 
-
+#====================================================================================
 # 1. put image to graph of networkx
 # 2. adjacent node with connected edge is up down left right upleft, upright, downleft, downright
-# 3. use Minimum Spanning Tree of networkx to generate the path of filling for each region
+# 3. use DFS of networkx to generate the path of filling for each region
+# 4. transfer the path to angles
 
-img = Image.open("test.bmp")
+img = Image.open("out_quantize.bmp")
 im = img.convert("RGB")
-G=nx.Graph()
+
+colors = im.getcolors()
+picture_colors = []
+for item in colors:
+    picture_colors.append(item[1])
+
+# remove white
+picture_colors.remove((252, 252, 252))
 
 width, height = im.size
 
-# 2d array
-matrix = []
-for j in range(height):
-    matrix.append([])
-    for i in range(width):
-        matrix[j].append(0)
+node_vectors = [] # holding node vectors for each color
+for z in range (len(picture_colors)):
+    matrix = []
+    for j in range(height):
+        matrix.append([])
+        for i in range(width):
+            matrix[j].append(0)
 
-# fill in matrix with 0 and 1
-for x in range(width):
+    # fill in matrix with 0 and 1
+    for x in range(width):
+        for y in range(height):
+            r,g,b = im.getpixel((x,y))
+            # r,g,b = 0, 0, 0
+            if r == picture_colors[z][0] and g == picture_colors[z][1] and b == picture_colors[z][2]:
+                matrix[y][x] = 1
+            else:
+                matrix[y][x] = 0
+
+    G=nx.Graph()
+    # add nodes of the graph
+    for x in range(width):
+        for y in range(height):
+            cur_node = width * y + x
+            if matrix[y][x] == 1:
+                G.add_node(cur_node)
+
+    # add edges of the graph
+    Edges = []
     for y in range(height):
-        r,g,b = im.getpixel((x,y))
-        # r,g,b = 0, 0, 0
-        if r == 0 and g == 0 and b == 0:
-            matrix[y][x] = 1
-        else:
-            matrix[y][x] = 0
+        for x in range(width): 
+            cur_node = width * y + x
+            # up down left right
+            if matrix[y][x] == 1 :
+                if x % width != width - 1 and matrix[y][x+1] == 1: # Right
+                    Edges.append((cur_node, cur_node + 1))
+                if x % width != 0 and matrix[y][x-1] == 1: # Left
+                    Edges.append((cur_node, cur_node - 1))
+                if y < height - 1 and matrix[y+1][x] == 1: # Down
+                    Edges.append((cur_node, cur_node + width))
+                if y > 0 and matrix[y-1][x] == 1: # Up
+                    Edges.append((cur_node, cur_node - width))
+                # diagonal
+                if x % width != width - 1 and y < height - 1 and matrix[y+1][x+1] == 1: # Down Right
+                    Edges.append((cur_node, cur_node + width + 1))
+                if x % width != width - 1 and y > 0 and matrix[y-1][x+1] == 1: # Up Right
+                    Edges.append((cur_node, cur_node - width + 1))
+                if x % width != 0 and y < height - 1 and matrix[y+1][x-1] == 1: # Down Left
+                    Edges.append((cur_node, cur_node + width - 1))
+                if x % width != 0 and y > 0 and matrix[y-1][x-1] == 1: # Up Left
+                    Edges.append((cur_node, cur_node - width - 1))
 
+    G.add_edges_from(Edges)
+    subgraphs = list(nx.connected_component_subgraphs(G)) # a list of connected graphs
 
-# add nodes of the graph
-for x in range(width):
-    for y in range(height):
-        cur_node = width * y + x
-        if matrix[y][x] == 1:
-            G.add_node(cur_node)
+    node_vector = []
 
-# add edges of the graph
-Edges = []
-for y in range(height):
-    for x in range(width): 
-        cur_node = width * y + x
-        # up down left right
-        if matrix[y][x] == 1 :
-            if x % width != width - 1 and matrix[y][x+1] == 1: # Right
-                Edges.append((cur_node, cur_node + 1))
-            if x % width != 0 and matrix[y][x-1] == 1: # Left
-                Edges.append((cur_node, cur_node - 1))
-            if y < height - 1 and matrix[y+1][x] == 1: # Down
-                Edges.append((cur_node, cur_node + width))
-            if y > 0 and matrix[y-1][x] == 1: # Up
-                Edges.append((cur_node, cur_node - width))
-            # diagonal
-            if x % width != width - 1 and y < height - 1 and matrix[y+1][x+1] == 1: # Down Right
-                Edges.append((cur_node, cur_node + width + 1))
-            if x % width != width - 1 and y > 0 and matrix[y-1][x+1] == 1: # Up Right
-                Edges.append((cur_node, cur_node - width + 1))
-            if x % width != 0 and y < height - 1 and matrix[y+1][x-1] == 1: # Down Left
-                Edges.append((cur_node, cur_node + width - 1))
-            if x % width != 0 and y > 0 and matrix[y-1][x-1] == 1: # Up Left
-                Edges.append((cur_node, cur_node - width - 1))
+    for graph in subgraphs:
+        nodes_list = list(graph.nodes())
+        dsf = nx.dfs_edges(graph, nodes_list[0])
+        edgelist = list(dsf)
+        if len(edgelist) > 0:
+            node_vector += vectorize(edgelist)
 
-G.add_edges_from(Edges)
-subgraphs = list(nx.connected_component_subgraphs(G)) # a list of connected graphs
-
-node_vector = []
-
-for graph in subgraphs:
-    nodes_list = list(graph.nodes())
-    dsf = nx.dfs_edges(graph, nodes_list[0])
-    edgelist = list(dsf)
-    if len(edgelist) > 0:
-        node_vector += vectorize(edgelist)
+    node_vectors.append(node_vector)
 
 # filling node list is stored in node_vector
-# print(node_vector)
+# print(node_vectors)
 
 #------------------------------------------------------------------------
 # convert to angle
-angle_vector = []
-for a in node_vector:
-    angle_list = []
-    for element in a:
 
-        x = int(element % width)
-        y = int(element / width)
+angle_vectors = [] # vectors holding angle for each color
+for i in range (len(node_vectors)):
+    angle_vector = []
+    for a in node_vectors[i]:
+        angle_list = []
+        for element in a:
 
-        try:
-            pair = inv_kinematics(x, y)
-            angle_list.append(pair)
-        except:
-            print("out of boundary")
-            # a.remove(element)
+            x = int(element % width)
+            y = int(element / width)
 
-    angle_vector.append(angle_list)
+            try:
+                pair = inv_kinematics(x, y)
+                angle_list.append(pair)
+            except:
+                print("out of boundary")
+                # a.remove(element)
+        angle_vector.append(angle_list)
+    angle_vectors.append(angle_vector)
 
-# First is shoulder, second is elbow
-print(angle_vector)
-
+#------------------------------------------------------------------------
+# output up down angle signals
 vector_file= open("vector.txt","w")
-for vector_item in angle_vector:
+
+# for testing purpose, only draw black
+black_index = 0
+for i in range(len(picture_colors)):
+    if picture_colors[i][0] == 0 and picture_colors[i][1] == 0 and picture_colors[i][2] == 0:
+        black_index = i
+
+vector_file.write("up\n")
+for vector_item in angle_vectors[black_index]:
     # each list
     record = 0
     for item in vector_item:
@@ -146,6 +167,8 @@ for vector_item in angle_vector:
         vector_file.write("first: " + str(item[0]) + "\n")
         vector_file.write("second: " + str(item[1]) + "\n")
         record += 1
+    if len(vector_item) == 1:
+        vector_file.write("down\n")
     vector_file.write("up\n")
 
 
@@ -158,11 +181,12 @@ index = 0
 if not os.path.exists('output'):
     os.makedirs('output')
 
-for list in node_vector:
-    for element in list:
-        x = element % width
-        y = int(element / width)
-        im.putpixel((x, y), (0, 0, 0))
-        path = 'output/out_' + str(index) + '.png'
-        im.save(path)
-        index += 1
+for i in range (len(picture_colors)):
+    for list in node_vectors[i]:
+        for element in list:
+            x = element % width
+            y = int(element / width)
+            im.putpixel((x, y), (picture_colors[i][0], picture_colors[i][1], picture_colors[i][2]))
+            path = 'output/out_' + str(index) + '.png'
+            im.save(path)
+            index += 1
