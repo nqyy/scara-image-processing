@@ -7,13 +7,19 @@ import os
 import math
 
 
-def inv_kinematics(x, y, L1, L2):
+def inv_kinematics(x, y):
+    L1 = 154.4319958
+    L2 = 183.263961369
+    pixel_factor = 1
+
+    x = pixel_factor * (x + 1 + 139.7) # offset of paper
+    y = pixel_factor * (width - y + 1 - 91.52171498) # offset of paper
 
     sqrt = math.sqrt(x**2+y**2)
     SplusQ = math.atan2(y,x)
-
-    S = SplusQ - math.acos((sqrt**2 + L1**2 - L2**2)/(2*sqrt*L1))
-    E = math.acos((sqrt**2 - L1**2 - L2**2)/(2*L1*L2))
+    
+    S = SplusQ - math.acos((x**2+y**2 + (L1 + L2)*(L1-L2))/(2*sqrt*L1))
+    E = math.acos((x**2+y**2 - L1**2 - L2**2)/(2*L1*L2))
 
     return [round(math.degrees(S),4),round(math.degrees(E),4)]
 
@@ -36,7 +42,7 @@ def vectorize(list):
 # 2. adjacent node with connected edge is up down left right upleft, upright, downleft, downright
 # 3. use Minimum Spanning Tree of networkx to generate the path of filling for each region
 
-img = Image.open("out_quantize.bmp")
+img = Image.open("test.bmp")
 im = img.convert("RGB")
 G=nx.Graph()
 
@@ -95,10 +101,6 @@ for y in range(height):
 G.add_edges_from(Edges)
 subgraphs = list(nx.connected_component_subgraphs(G)) # a list of connected graphs
 
-# print(subgraphs)
-# calculate minimum spanning edges of the graph
-# mst = nx.minimum_spanning_edges(G, algorithm='kruskal', data=False) # can use prim as well
-
 node_vector = []
 
 for graph in subgraphs:
@@ -107,27 +109,44 @@ for graph in subgraphs:
     edgelist = list(dsf)
     if len(edgelist) > 0:
         node_vector += vectorize(edgelist)
+
 # filling node list is stored in node_vector
 # print(node_vector)
 
-
 #------------------------------------------------------------------------
 # convert to angle
-L1 = 100
-L2 = 100
 angle_vector = []
 for a in node_vector:
     angle_list = []
     for element in a:
-        x = element % width
-        y = element / width
-        pair = inv_kinematics(x, y, L1, L2)
-        angle_list.append(pair)
+
+        x = int(element % width)
+        y = int(element / width)
+
+        try:
+            pair = inv_kinematics(x, y)
+            angle_list.append(pair)
+        except:
+            print("out of boundary")
+            # a.remove(element)
+
     angle_vector.append(angle_list)
 
 # First is shoulder, second is elbow
 print(angle_vector)
 
+vector_file= open("vector.txt","w")
+for vector_item in angle_vector:
+    # each list
+    record = 0
+    for item in vector_item:
+    # each pair
+        if record == 1:
+            vector_file.write("down\n")
+        vector_file.write("first: " + str(item[0]) + "\n")
+        vector_file.write("second: " + str(item[1]) + "\n")
+        record += 1
+    vector_file.write("up\n")
 
 
 #------------------------------------------------------------------------

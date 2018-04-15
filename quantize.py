@@ -34,68 +34,34 @@ def fill_holes(finalimage):
     im = finalimage.convert("RGB")
     width, height = im.size
 
-    matrix1 = []
-    matrix2 = []
-    matrix3 = []
+    matrixes = []
+    for i in range (len(ourcolors)):
+        matrixes.append([])
 
-    for j in range(height):
-        matrix1.append([])
-        matrix2.append([])
-        matrix3.append([])
-        for i in range(width):
-            matrix1[j].append(0)
-            matrix2[j].append(0)
-            matrix3[j].append(0)
+    for mat in matrixes:
+        for j in range(height):
+            mat.append([])
+            for i in range(width):
+                mat[j].append(0)
 
-    # fill in matrix with 0 and 1
-    for y in range(height):
-        for x in range(width):
-            r, g, b = im.getpixel((x, y))
-            # r,g,b = 0, 0, 0
-            if r == ourcolors[0][0] and g == ourcolors[0][1] and b == ourcolors[0][2]:
-                matrix1[y][x] = 1
-            else:
-                matrix1[y][x] = 0
-
-    for y in range(height):
-        for x in range(width):
-            r, g, b = im.getpixel((x, y))
-            # r,g,b = 0, 0, 0
-            if r == ourcolors[1][0] and g == ourcolors[1][1] and b == ourcolors[1][2]:
-                matrix2[y][x] = 1
-            else:
-                matrix2[y][x] = 0
-
-    for y in range(height):
-        for x in range(width):
-            r, g, b = im.getpixel((x, y))
-            # r,g,b = 0, 0, 0
-            if r == ourcolors[2][0] and g == ourcolors[2][1] and b == ourcolors[2][2]:
-                matrix3[y][x] = 1
-            else:
-                matrix3[y][x] = 0
-
-    data1 = scipy.ndimage.morphology.binary_fill_holes(matrix1)
-    data2 = scipy.ndimage.morphology.binary_fill_holes(matrix2)
-    data3 = scipy.ndimage.morphology.binary_fill_holes(matrix3)
+    data = []
+    for i in range (len(ourcolors)):
+        for y in range(height):
+            for x in range(width):
+                r, g, b = im.getpixel((x, y))
+                if r == ourcolors[i][0] and g == ourcolors[i][1] and b == ourcolors[i][2]:
+                    matrixes[i][y][x] = 1
+                else:
+                    matrixes[i][y][x] = 0
+        data.append(scipy.ndimage.morphology.binary_fill_holes(matrixes[i]))
 
     im = Image.new("RGB", (width, height))
 
-    for y in range(height):
-        for x in range(width):
-            if data1[y][x] == 1:
-                im.putpixel(
-                    (x, y), (ourcolors[0][0], ourcolors[0][1], ourcolors[0][2]))
-                continue
-            if data2[y][x] == 1:
-                im.putpixel(
-                    (x, y), (ourcolors[1][0], ourcolors[1][1], ourcolors[1][2]))
-                continue
-            if data3[y][x] == 1:
-                im.putpixel(
-                    (x, y), (ourcolors[2][0], ourcolors[2][1], ourcolors[2][2]))
-                continue
-            im.putpixel((x, y), (255, 255, 255))
+    for i in range (len(data)):
+        for y in range(height):
+            for x in range(width):
+                if data[i][y][x] == 1:
+                    im.putpixel((x, y), (ourcolors[i][0], ourcolors[i][1], ourcolors[i][2]))
 
     return im
 
@@ -137,12 +103,12 @@ colorpool = {
     'blue': (0, 0, 255),
     'purple': (127, 0, 127),
     'black': (0, 0, 0),
-    'white': (255, 255, 255),
+    # 'white': (255, 255, 255),
     'indigo': (75, 0, 130),
     # more colors can be added to our pool
 }
 
-ourcolors = [(255,255,255)]
+ourcolors = [(252,252,252)] # white
 for i in range(len(colorslist)):
     ourcolors.append(colorpool[colorslist[i]])
 
@@ -166,6 +132,7 @@ finalimage = finalimage.resize(
 
 # call fill holes
 if fillholes == "true":
+    print("holes filled")
     im = fill_holes(finalimage)
 else:
     im = finalimage
