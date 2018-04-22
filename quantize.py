@@ -73,7 +73,7 @@ def fill_holes(finalimage):
 
 # get configuration from config file
 try:
-    s = open("quantize.config","r")
+    s = open("configuration.config","r")
 except:
     sys.exit("File 'quantize.config' is missing")
 
@@ -93,6 +93,7 @@ colorslist = colors.split(" ")
 #--------------------starts the program-----------------------
 
 img = Image.open(image_name)
+img = img.convert("RGB")
 
 # all the colors we have right now
 colorpool = {
@@ -132,8 +133,8 @@ finalimage = finalimage.resize(
 
 # call fill holes
 if fillholes == "true":
-    print("holes filled")
     im = fill_holes(finalimage)
+    print("holes filled")
 else:
     im = finalimage
 
