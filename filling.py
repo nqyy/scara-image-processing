@@ -58,6 +58,7 @@ L1 = float(settings[4])
 L2 = float(settings[5])
 pixel_factor = float(settings[6])
 animation = settings[7]
+optimization = settings[8]
 
 #------------------------------------------------------------------------
 img = Image.open("out_quantize.bmp")
@@ -199,27 +200,33 @@ for opt_node_vector in opt_node_vectors:
                 node_to_remove.append(item[i])
 
 # construct new vectors with optimization
-new_vectors = []
+optimized_vectors = []
 for opt_node_vector in opt_node_vectors:  # each color
-    new_vector = []
+    optimized_vector = []
     for node_list in opt_node_vector:  # each draw
         new_list = []
         for node in node_list:  # each node
             if node not in node_to_remove:
                 new_list.append(node)
-        new_vector.append(new_list)
-    new_vectors.append(new_vector)
+        optimized_vector.append(new_list)
+    optimized_vectors.append(optimized_vector)
 
-# print(new_vectors)
+# print(optimized_vectors)
 # new vectors contains the optimized vectors
+
+#------------------------------------------------------------------------
+if optimization == True:
+    vectors_to_use = optimized_vectors
+else:
+    vectors_to_use = node_vectors
 
 #------------------------------------------------------------------------
 # convert to angle
 
 angle_vectors = []  # vectors holding angle for each color
-for i in range(len(new_vectors)):
+for i in range(len(vectors_to_use)):
     angle_vector = []
-    for a in new_vectors[i]:
+    for a in vectors_to_use[i]:
         angle_list = []
         for element in a:
 
@@ -287,7 +294,7 @@ if animation == "true":
         os.makedirs('output')
 
     for i in range(len(picture_colors)):
-        for list in new_vectors[i]:
+        for list in node_vectors[i]:
             for element in list:
                 x = element % width
                 y = int(element / width)

@@ -1,4 +1,7 @@
-python3
 pillow
 numpy
 networkx
+scipy
+argparse
+pyserial
+opencv-python

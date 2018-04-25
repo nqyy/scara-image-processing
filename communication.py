@@ -2,6 +2,7 @@ import serial
 
 ser = serial.Serial('COM3', 115200)
 
+# just for a single color vector0
 with open("vector/vector0.txt") as f:
     content = f.readlines()
 content = [x.strip() for x in content]

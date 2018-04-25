@@ -61,11 +61,13 @@ for y in range(height):
         else:
             pixels[x, y] = (252, 252, 252)
 
+# # boundary
 # for y in range(height):
 #     for x in range(width):
-#         if (x == 1 and y == 5) or (x == 12 and y == 6) or (x == 25 and y == 3) or (x == 43 and y == 48):
+#         if x == width - 1 or x == 0 or y == height - 1 or y == 0:
 #             pixels[x, y] = (0, 0, 0)
 #         else:
 #             pixels[x, y] = (252, 252, 252)
+
 
 image.save('out_quantize.bmp')
